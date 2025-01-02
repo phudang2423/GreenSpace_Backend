@@ -1,0 +1,37 @@
+server:
+  port: 8080
+  tomcat:
+    # Giới hạn kích thước dữ liệu mà Tomcat có thể chấp nhận
+    max-swallow-size: 500MB
+
+spring:
+
+  # Cấu hình MySQL
+  datasource:
+    url: jdbc:mysql://localhost:3306/phu  # Thay đổi thành database của bạn
+    username: root
+    password: 123456
+  jpa:
+    hibernate:
+      ddl-auto: update  # Cập nhật schema tự động
+    show-sql: true  # Hiển thị câu lệnh SQL trong log
+    properties:
+      hibernate:
+        format_sql: true  # Định dạng SQL cho dễ đọc
+
+  # Cấu hình Elasticsearch
+  data:
+    elasticsearch:
+      rest:
+        uris: http://localhost:9200  # Địa chỉ của Elasticsearch
+      repositories:
+        enabled: true  # Kích hoạt Elasticsearch repositories
+
+  # Cấu hình file upload (có thể cần nếu bạn cho phép người dùng tải lên tệp lớn)
+  servlet:
+    multipart:
+      # Giới hạn kích thước tệp upload (500MB trong ví dụ này)
+      max-file-size: 500MB
+      max-request-size: 500MB
+  main:
+    allow-bean-definition-overriding: true
