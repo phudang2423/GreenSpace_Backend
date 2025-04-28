@@ -23,6 +23,9 @@ public class Product {
 
     private String category; // Liên kết đến danh mục sản phẩm (Foreign Key)
 
+    private String folderId; // Lưu thư mục Google Drive của sản phẩm
+
+
     @ElementCollection
     private List<String> imageUrl; // URL hình ảnh sản phẩm (dùng List để lưu nhiều ảnh)
 
@@ -141,5 +144,18 @@ public class Product {
 
     public void setOriginalPrice(Double originalPrice) {
         this.originalPrice = originalPrice;
+    }
+
+    public String getFolderId() {
+        return folderId;
+    }
+
+    public void setFolderId(String folderId) {
+        this.folderId = folderId;
+    }
+
+    // Lấy URL đầu tiên trong danh sách ảnh
+    public String getFirstImageUrl() {
+        return (imageUrl != null && !imageUrl.isEmpty()) ? imageUrl.get(0) : null;
     }
 }

@@ -1,40 +1,52 @@
 package com.Upload.Phu.Entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-public class User {
+public class User{
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int id; // Khóa chính
+    private Integer id; // Khóa chính
 
+    @Column(nullable = false)
     private String displayName;
+
+   @Column(nullable = false, unique = true)
     private String username;
-    private String password;
+
+    @Column(nullable = false)
+   private String password;
+
+    @Email(message = "Please provide a valid email address.")
+    @Size(max = 100, message = "Email cannot be longer than 100 characters.")
     private String email;
+    @Pattern(regexp = "^[+0-9]{10}$", message = "Phone number must be between 10 digits and may contain a leading '+' sign.")
     private String phone;
     private String address;
     private String role;
     private LocalDate dob; // Ngày sinh
+
+    @Column(updatable = false)
     private LocalDateTime createAt; // Thời gian tạo
 
-    // Tự động gán thời gian tạo trước khi lưu
     @PrePersist
     public void prePersist() {
         this.createAt = LocalDateTime.now();
     }
 
     // Getters và Setters
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

@@ -1,37 +1,46 @@
 server:
   port: 8080
   tomcat:
-    # Giới hạn kích thước dữ liệu mà Tomcat có thể chấp nhận
     max-swallow-size: 500MB
 
 spring:
-
-  # Cấu hình MySQL
   datasource:
-    url: jdbc:mysql://localhost:3306/phu  # Thay đổi thành database của bạn
+    url: jdbc:mysql://localhost:3306/phu
     username: root
     password: 123456
   jpa:
     hibernate:
-      ddl-auto: update  # Cập nhật schema tự động
-    show-sql: true  # Hiển thị câu lệnh SQL trong log
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
-        format_sql: true  # Định dạng SQL cho dễ đọc
-
-  # Cấu hình Elasticsearch
+        format_sql: true
   data:
     elasticsearch:
       rest:
-        uris: http://localhost:9200  # Địa chỉ của Elasticsearch
+        uris: http://localhost:9200
       repositories:
-        enabled: true  # Kích hoạt Elasticsearch repositories
-
-  # Cấu hình file upload (có thể cần nếu bạn cho phép người dùng tải lên tệp lớn)
+        enabled: true
   servlet:
+    session:
+      timeout: 30m
     multipart:
-      # Giới hạn kích thước tệp upload (500MB trong ví dụ này)
-      max-file-size: 500MB
-      max-request-size: 500MB
+      enabled: true
+      max-file-size: 200MB
+      max-request-size: 215MB
   main:
     allow-bean-definition-overriding: true
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.multipart: DEBUG
+
+file:
+  upload-dir: C:/Users/Phu Nguyen/Desktop/uploads
+
+vnpay:
+  tmnCode: MKVORUGQ
+  hashSecret: B8NEDBJY4FVGAXJT2GXKPHMH0MZ6I8DY
+  paymentUrl: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  returnUrl: http://localhost:8080/api/v1/payment/vnpay-payment-return

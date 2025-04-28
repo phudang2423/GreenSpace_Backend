@@ -14,6 +14,15 @@ public class ProductRequestDTO {
     private Integer stockQuantity;
     private String slug;
     private String tags;
+    private String folderId; // Lưu thư mục Google Drive của sản phẩm
+
+    public String getFolderId() {
+        return folderId;
+    }
+
+    public void setFolderId(String folderId) {
+        this.folderId = folderId;
+    }
 
     public String getSlug() {
         return slug;

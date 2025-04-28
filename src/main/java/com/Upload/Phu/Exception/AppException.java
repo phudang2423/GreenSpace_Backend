@@ -8,6 +8,8 @@ public class AppException extends RuntimeException {
     }
 
     private ErrorCode errorcode;
+    private  Object details;
+
 
     public ErrorCode getErrorcode() {
         return errorcode;
@@ -15,5 +17,13 @@ public class AppException extends RuntimeException {
 
     public void setErrorcode(ErrorCode errorcode) {
         this.errorcode = errorcode;
+    }
+
+    public Object getDetails() {
+        return details;
+    }
+
+    public void setDetails(Object details) {
+        this.details = details;
     }
 }

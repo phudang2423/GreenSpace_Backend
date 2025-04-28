@@ -3,10 +3,13 @@ package com.Upload.Phu.Service;
 import com.Upload.Phu.Entity.Product;
 import com.Upload.Phu.Repository.ProductRepository;
 import com.Upload.Phu.RequestDTO.ProductRequestDTO;
+import com.Upload.Phu.Util.SlugUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -15,25 +18,28 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
+    // BƯỚC 1: Tạo sản phẩm trước
     public Product createProduct(ProductRequestDTO requestDTO) {
-        // Kiểm tra nếu name là null hoặc trống, có thể xử lý lỗi hoặc trả về thông báo
         if (requestDTO.getName() == null || requestDTO.getName().isEmpty()) {
-            throw new IllegalArgumentException("Product name cannot be null or empty");
+            throw new IllegalArgumentException("Tên sản phẩm không được để trống!");
         }
 
         Product product = new Product();
         product.setName(requestDTO.getName());
         product.setDescription(requestDTO.getDescription());
         product.setCategory(requestDTO.getCategory());
-        product.setImageUrl(requestDTO.getImageUrl());
         product.setPrice(requestDTO.getPrice());
         product.setStockQuantity(requestDTO.getStockQuantity());
-        product.setSlug(requestDTO.getSlug());
         product.setTags(requestDTO.getTags());
-        product.setOriginalPrice(requestDTO.getOriginalPrice()); // Set originalPrice
+        product.setOriginalPrice(requestDTO.getOriginalPrice());
+        product.setSlug(SlugUtil.generateSlug(requestDTO.getName()));
+
+        // Kiểm tra nếu có danh sách ảnh thì thêm vào
+        product.setImageUrl(requestDTO.getImageUrl() != null ? requestDTO.getImageUrl() : new ArrayList<>());
 
         return productRepository.save(product);
     }
+
 
     public List<Product> getAllProducts() {
         return productRepository.findAll();
@@ -41,37 +47,38 @@ public class ProductService {
 
     // Xóa sản phẩm
     public void deleteProduct(Long id) {
-        // Kiểm tra xem sản phẩm có tồn tại không
-        Product existingProduct = productRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Product not found"));
-
-        // Xóa sản phẩm khỏi cơ sở dữ liệu
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
         productRepository.delete(existingProduct);
     }
 
     // Cập nhật thông tin sản phẩm
     public Product updateProduct(Long id, ProductRequestDTO requestDTO) {
-        // Kiểm tra xem sản phẩm có tồn tại không
-        Product existingProduct = productRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
 
-        // Cập nhật thông tin sản phẩm từ requestDTO
         existingProduct.setName(requestDTO.getName());
         existingProduct.setDescription(requestDTO.getDescription());
         existingProduct.setCategory(requestDTO.getCategory());
         existingProduct.setPrice(requestDTO.getPrice());
         existingProduct.setStockQuantity(requestDTO.getStockQuantity());
-        existingProduct.setImageUrl(requestDTO.getImageUrl());
         existingProduct.setTags(requestDTO.getTags());
         existingProduct.setSlug(requestDTO.getSlug());
-        existingProduct.setOriginalPrice(requestDTO.getOriginalPrice()); // Set originalPrice
+        existingProduct.setOriginalPrice(requestDTO.getOriginalPrice());
 
-        // Lưu lại sản phẩm đã cập nhật
+        // Cập nhật danh sách ảnh nếu có dữ liệu mới
+        if (requestDTO.getImageUrl() != null) {
+            existingProduct.setImageUrl(requestDTO.getImageUrl());
+        }
+
         return productRepository.save(existingProduct);
     }
 
-    //Tìm sản phẩm qua slug
+
+    // Tìm sản phẩm qua slug
     public Product getProductBySlug(String slug) {
         return productRepository.findBySlug(slug)
-                .orElseThrow(() -> new RuntimeException("Product not found with slug: " + slug));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm với slug: " + slug));
     }
 
     // Tìm kiếm sản phẩm nâng cao
@@ -79,11 +86,29 @@ public class ProductService {
         return productRepository.searchProducts(query);
     }
 
-    // Phương thức tìm kiếm các gợi ý sản phẩm
+    // Tìm kiếm gợi ý sản phẩm
     public List<String> getProductSuggestions(String query) {
-        List<Product> products = productRepository.findByNameContainingIgnoreCase(query); // Tìm kiếm sản phẩm theo tên
+        List<Product> products = productRepository.findByNameContainingIgnoreCase(query);
         return products.stream()
-                .map(Product::getName) // Chỉ lấy tên sản phẩm
-                .collect(Collectors.toList()); // Trả về danh sách tên sản phẩm
+                .map(Product::getName)
+                .collect(Collectors.toList());
     }
+
+    // BƯỚC 2: Cập nhật danh sách ảnh sau khi tải lên Google Drive
+    public Product updateProductImages(Long productId, List<String> imageIds) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
+
+        // Gán danh sách ảnh mới thay vì cộng dồn
+        product.setImageUrl(imageIds != null ? new ArrayList<>(imageIds) : new ArrayList<>());
+
+        return productRepository.save(product);
+    }
+
+
+    public Optional<Product> findById(long id) {
+        return productRepository.findById(id);
+    }
+
+
 }

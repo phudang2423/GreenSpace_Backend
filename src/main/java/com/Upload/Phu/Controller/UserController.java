@@ -1,7 +1,9 @@
 package com.Upload.Phu.Controller;
 
 import com.Upload.Phu.Entity.User;
+import com.Upload.Phu.Repository.UserRepository;
 import com.Upload.Phu.RequestDTO.ApiResponse;
+import com.Upload.Phu.RequestDTO.ChangePasswordRequestDTO;
 import com.Upload.Phu.RequestDTO.UserRequestDTO;
 import com.Upload.Phu.Service.UserService;
 import jakarta.validation.Valid;
@@ -10,15 +12,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:5173") // Cho phép frontend gọi API
 @RestController
 public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private UserRepository userRepository;
 
     // Lấy tất cả người dùng
-    @GetMapping("/Users")
+    @GetMapping("/users")
     public ApiResponse<List<User>> getUsers() {
         ApiResponse<List<User>> apiResponse = new ApiResponse<>();
         apiResponse.setCode(1000);
@@ -28,7 +34,7 @@ public class UserController {
     }
 
     //Lấy người dùng theo id
-    @GetMapping("/Users/{id}")
+    @GetMapping("/users/{id}")
     public ApiResponse<User> getUser(@PathVariable int id) {
         ApiResponse<User> apiResponse = new ApiResponse<>();
         apiResponse.setCode(1000);
@@ -36,8 +42,22 @@ public class UserController {
         return apiResponse;
     }
 
+    @GetMapping("/username/{username}")
+    public ResponseEntity<UserRequestDTO> getUserByUsername(@PathVariable String username) {
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        UserRequestDTO userDTO = new UserRequestDTO();
+        userDTO.setUser(user);  // Thiết lập giá trị từ User vào UserRequestDTO
+
+        return ResponseEntity.ok(userDTO);
+    }
+
+
     // Tạo mới người dùng
-    @PostMapping("/Users")
+    @PostMapping("/users")
     public ApiResponse<User> createUser(@RequestBody @Valid UserRequestDTO requestDTO) {
         ApiResponse<User> apiResponse = new ApiResponse<>();
         apiResponse.setCode(1000);
@@ -46,8 +66,9 @@ public class UserController {
         return apiResponse;
     }
 
+
     // Xóa người dùng theo id
-    @DeleteMapping("/Users/{id}")
+    @DeleteMapping("/users/{id}")
     public ApiResponse deleteUser(@PathVariable int id) {
         userService.deleteUser(id);
         ApiResponse apiResponse = new ApiResponse();
@@ -58,13 +79,19 @@ public class UserController {
 
 
 
-    // Sửa người dùng theo id
-    @PutMapping("/Users/{id}")
-    public ApiResponse<User> updateUser(@PathVariable int id, @RequestBody UserRequestDTO requestDTO) {
+    // Sửa người dùng theo username
+    @PutMapping("/users/{username}")
+    public ApiResponse<User> updateUser(@PathVariable String username, @RequestBody UserRequestDTO requestDTO) {
         ApiResponse<User> apiResponse = new ApiResponse<>();
         apiResponse.setCode(1000);
         apiResponse.setMessage("Cập nhật người dùng thành công!");
-        apiResponse.setResult(userService.updateUser(id, requestDTO));
+        apiResponse.setResult(userService.updateUser(username, requestDTO)); // dùng username
         return apiResponse;
     }
+
+
+
+
+
+
 }

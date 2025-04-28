@@ -14,56 +14,69 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Service
 public class ResService {
-    private static final String FOLDER_ID = "1Ka8479KlAgWySdSBYa2kmyFGO4vjJLvv";  // ID của thư mục Google Drive cần tạo trong đó
-    private static final String CREDENTIALS_FILE_PATH = "credentials.json"; // Đường dẫn đến file credentials.json
+    private static final String FOLDER_ID = "1spzFinCq3ijhnLotRhhTsEy6ZB_Ggd3v";  // ID của thư mục Google Drive cần tạo trong đó
+    private static final String CREDENTIALS_FILE_PATH = "key.json"; // Đường dẫn đến file credentials.json
 
     //Thêm ảnh
-    public String uploadImage(String filePath, String folderId) throws IOException {
-        // Đường dẫn tương đối đến tệp credentials.json từ thư mục gốc của dự án
-        // String credentialsFilePath = Paths.get("src", "credentials.json").toString(); // Nhớ có file credentials.json của bản thân chứ không phải credentials của tôi
-
-        // Tạo credentials từ tệp credentials.json
+    public String uploadImage(MultipartFile file, String folderId) throws IOException {
+        // Lấy thông tin chứng thực từ file credentials.json
         GoogleCredentials credentials = GoogleCredentials
                 .fromStream(new ClassPathResource(CREDENTIALS_FILE_PATH).getInputStream())
-                .createScoped(Arrays.asList("https://www.googleapis.com/auth/drive.file"));
+                .createScoped(Arrays.asList(DriveScopes.DRIVE_FILE));
 
-        // Khởi tạo Drive API client
         HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
 
-        // Tạo Drive service client
-        Drive service = new Drive.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance(), requestInitializer)
-                .setApplicationName("Spring Boot Google Drive API")
+        Drive driveService = new Drive.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance(), requestInitializer)
+                .setApplicationName("Drive Service")
                 .build();
 
-        // Metadata của tệp
-        File fileMetadata = new File();
-        fileMetadata.setName(filePath.substring(filePath.lastIndexOf("/") + 1)); // Lấy tên file từ đường dẫn
-        fileMetadata.setParents(Arrays.asList(folderId)); // Đặt folder ID để upload vào
+        // Chuyển đổi MultipartFile thành tệp tạm thời
+        java.io.File tempFile = convertMultiPartToFile(file);
 
-        java.io.File file = new java.io.File(filePath);
-        FileContent mediaContent = new FileContent("image/jpeg", file); // Đặt media type (có thể thay đổi tùy loại file)
+        // Khởi tạo metadata của tệp để tải lên Google Drive
+        File fileMetadata = new File();
+        fileMetadata.setName(file.getOriginalFilename());
+        fileMetadata.setParents(Collections.singletonList(folderId));
+
+        // Xác định nội dung file cần tải lên
+        FileContent mediaContent = new FileContent(file.getContentType(), tempFile);
 
         try {
             // Tải file lên Google Drive
-            File uploadedFile = service.files().create(fileMetadata, mediaContent)
+            File uploadedFile = driveService.files().create(fileMetadata, mediaContent)
                     .setFields("id")
                     .execute();
-            System.out.println("File ID: " + uploadedFile.getId());
-            return uploadedFile.getId(); // Trả về ID của file đã tải lên
+
+            // Xóa file tạm để tránh tràn bộ nhớ
+            tempFile.delete();
+
+            return uploadedFile.getId();
         } catch (GoogleJsonResponseException e) {
-            // Xử lý lỗi nếu có
-            System.err.println("Unable to upload file: " + e.getDetails());
+            System.err.println("Lỗi khi tải ảnh lên Google Drive: " + e.getDetails());
             throw e;
         }
     }
+
+    private java.io.File convertMultiPartToFile(MultipartFile file) throws IOException {
+        java.io.File convFile = new java.io.File(System.getProperty("java.io.tmpdir") + "/" + file.getOriginalFilename());
+        try (FileOutputStream fos = new FileOutputStream(convFile)) {
+            fos.write(file.getBytes());
+        }
+        return convFile;
+    }
+
+
     // Phương thức tạo thư mục trên Google Drive
     public String createFolder(String folderName, String folderId) throws IOException {
         // Lấy thông tin chứng thực từ file credentials.json

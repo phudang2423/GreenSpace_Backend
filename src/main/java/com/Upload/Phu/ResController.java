@@ -1,89 +1,88 @@
 package com.Upload.Phu;
 
-import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+@Controller
 @RestController
+@RequestMapping("/api/drive")
 public class ResController {
+
     @Autowired
     private ResService resService;
 
+    // 📌 API Tải ảnh lên Google Drive
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file,
+                                              @RequestParam("folderId") String folderId) {
+        try {
+            String fileId = resService.uploadImage(file, folderId);
+            return ResponseEntity.ok("Tải ảnh thành công! File ID: " + fileId);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi tải ảnh: " + e.getMessage());
+        }
+    }
+
+    // 📌 API Tạo thư mục mới trên Google Drive
     @PostMapping("/create-folder")
-    public String createFolder(@RequestParam String folderName, @RequestParam(defaultValue = "1Ka8479KlAgWySdSBYa2kmyFGO4vjJLvv") String folderIdParent) {
+    public ResponseEntity<String> createFolder(@RequestParam String folderName, @RequestParam String parentFolderId) {
         try {
-            String folderId = resService.createFolder(folderName, folderIdParent);
-            return "Thư mục đã được tạo thành công với ID: " + folderId;
+            String folderId = resService.createFolder(folderName, parentFolderId);
+            return ResponseEntity.ok("Tạo thư mục thành công! Folder ID: " + folderId);
         } catch (IOException e) {
-            return "Lỗi khi tạo thư mục: " + e.getMessage();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi tạo thư mục: " + e.getMessage());
         }
     }
 
-    @PostMapping("/upload-image")
-    public String uploadFile(@RequestParam("file") MultipartFile file, @RequestParam String folderId) {
-        try {
-            // Đường dẫn lưu tệp vào thư mục tạm trên máy chủ
-            //String dirPath = "C:\\Users\\Phu Nguyen\\Desktop\\temp-upload";  // Cập nhật đường dẫn thư mục // Cần đổi thành file lưu trữ tạm thời tren máy của mình
-            String dirPath = System.getProperty("java.io.tmpdir");
-            System.out.println(dirPath);
-            File dir = new File(dirPath);
-            if (!dir.exists()) {
-                dir.mkdirs();  // Tạo thư mục nếu chưa có
-            }
-
-            // Đường dẫn đầy đủ để lưu tệp
-            String filePath = dirPath + "\\" + file.getOriginalFilename();
-
-            // Lưu tệp vào thư mục
-            file.transferTo(new java.io.File(filePath));
-
-            // Gọi dịch vụ tải lên Google Drive
-            return resService.uploadImage(filePath, folderId);
-        } catch (IOException e) {
-            return "Error: " + e.getMessage();
-        }
-    }
-
+    // 📌 API Lấy danh sách tất cả thư mục trong Drive
     @GetMapping("/list-folders")
     public ResponseEntity<List<String>> listFolders() {
         try {
-            List<String> folderIds = resService.listFolders(); // Tạo phương thức listFolders trong ResService
-            return new ResponseEntity<>(folderIds, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/list-folders/{folderId}")
-    public List<String> listFiles(@PathVariable String folderId) {
-        try {
-            // Gọi phương thức listFiles từ ResService
-            return resService.listFiles(folderId);
+            List<String> folders = resService.listFolders();
+            return ResponseEntity.ok(folders);
         } catch (IOException e) {
-            // Nếu có lỗi, trả về thông báo lỗi
-            throw new RuntimeException("Có lỗi khi lấy danh sách tệp", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
-    //Xóa folder cha
-    @DeleteMapping("/delete/{folderId}")
-    public void deleteFolder(@PathVariable String folderId) throws IOException {
-        resService.deleteFile(folderId);
+    // 📌 API Lấy danh sách tất cả file trong một thư mục cụ thể
+    @GetMapping("/list-files")
+    public ResponseEntity<List<String>> listFiles(@RequestParam String folderId) {
+        try {
+            List<String> files = resService.listFiles(folderId);
+            return ResponseEntity.ok(files);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
-    //Xóa 1 thư mục con
-        @DeleteMapping("/delete/subFolder/{subFolderId}")
-    public void deleteSubFolder(@PathVariable String subFolderId) throws IOException {
-        resService.deleteSubFolder(subFolderId);
+    // 📌 API Xóa tệp hoặc thư mục (bao gồm nội dung bên trong)
+    @DeleteMapping("/delete")
+    public ResponseEntity<String> deleteFile(@RequestParam String fileId) {
+        try {
+            resService.deleteFile(fileId);
+            return ResponseEntity.ok("Đã xóa tệp hoặc thư mục có ID: " + fileId);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi xóa file: " + e.getMessage());
+        }
     }
 
+    // 📌 API Xóa thư mục con trong thư mục cha
+    @DeleteMapping("/delete-subfolder")
+    public ResponseEntity<String> deleteSubFolder(@RequestParam String childFolderId) {
+        try {
+            resService.deleteSubFolder(childFolderId);
+            return ResponseEntity.ok("Đã xóa thư mục con có ID: " + childFolderId);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi xóa thư mục con: " + e.getMessage());
+        }
+    }
 }

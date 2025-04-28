@@ -10,9 +10,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/products")
+@CrossOrigin(origins = "http://localhost:5173") // Cho phép frontend truy cập
 public class ProductController {
 
     @Autowired
@@ -30,14 +32,37 @@ public class ProductController {
         return productService.getProductBySlug(slug);
     }
 
-    // Thêm sản phẩm mới
+    @GetMapping("/id/{id}")
+    public ResponseEntity<Product> getProductById(@PathVariable int id) {
+        Optional<Product> product = productService.findById(id);
+
+        if (product.isPresent()) {
+            return ResponseEntity.ok(product.get()); // ✅ Trả về sản phẩm nếu có
+        } else {
+            return ResponseEntity.notFound().build(); // ❌ 404 nếu không tìm thấy
+        }
+    }
+
+
+    // Thêm sản phẩm mới -> BƯỚC 1: Tạo sản phẩm trước
     @PostMapping("")
-    public ResponseEntity<Product> createProduct(@RequestBody @Validated ProductRequestDTO requestDTO) {
+    public ResponseEntity<?> createProduct(@RequestBody @Validated ProductRequestDTO requestDTO) {
         try {
             Product product = productService.createProduct(requestDTO);
-            return new ResponseEntity<>(product, HttpStatus.CREATED);
+            return ResponseEntity.status(HttpStatus.CREATED).body(product);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    // BƯỚC 2: Cập nhật danh sách ảnh sau khi tải lên
+    @PutMapping("/{id}/upload-images")
+    public ResponseEntity<?> updateProductImages(@PathVariable("id") Long id, @RequestBody List<String> imageUrls) {
+        try {
+            Product updatedProduct = productService.updateProductImages(id, imageUrls);
+            return ResponseEntity.ok(updatedProduct);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
         }
     }
 
@@ -76,4 +101,3 @@ public class ProductController {
         return productService.getProductSuggestions(query);
     }
 }
-

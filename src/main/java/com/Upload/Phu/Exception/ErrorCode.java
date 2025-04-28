@@ -6,6 +6,7 @@ public enum ErrorCode {
     USERNAME_INVALID(1003, "Tài khoản phải từ 6 ký tự trở lên"),
     PASSWORD_INVALID(1004, "Mật khẩu phải từ 6 ký tự trở lên"),
     USER_NOT_FOUND(1005, "Không tìm thấy người dùng"),
+    EMAIL_EXISTED(1006, "Email đã được sử dụng")
     ;
 
     ErrorCode(int code, String message) {
